@@ -6,7 +6,7 @@ from {local countdown is 5.} until countdown = 0 step {set countdown to countdow
 }
 
 lock throttle to 1.
-lock steering to UP.
+lock steering to heading(90, 90, 0).
 wait 0.1.
 stage.
 

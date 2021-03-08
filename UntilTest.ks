@@ -11,6 +11,4 @@ until false {
 
 
 
-    
-
 wait until ship:altitude > 50000.
