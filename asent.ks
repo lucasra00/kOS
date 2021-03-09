@@ -12,26 +12,23 @@ until (ship:altitude >= 7000) {
 print "Speed no longer restricted.".
 
 lock throttle to 1.
-until (apoapsis >= 73000) {
+until (apoapsis >= 75000) {
     steering_control.
     stage_ssb.
     stage_lf.
 }
 
 print "Apoapsis at 73km. Turning.".
-print "Starting apoapsis limit".
+print "Starting apoapsis limit @ 100km".
 
 lock steering to heading(90, 0, 0).
 
 thrust_apo_limit_init.
-until ship:altitude >=65000 {
+until ship:altitude >=100000 {
     thrust_apo_limit.
     stage_lf.
+    deploy_fairing.
 }
-
-wait until ship:altitude > 70001.
-
-deploy_fairing.
 
 lock throttle to 0.
 
@@ -82,7 +79,7 @@ function thrust_apo_limit_init {
     lock throttle to mythrot.           //Locks throttle to the variable 
     set appholdPID to pidLoop(          //Creats a PID
         0.015, 0.0005, 0.0001, 0, 1).   //PID values
-    set hold_app to 80000.              //Appoapsis hight. 
+    set hold_app to 100000.              //Appoapsis hight. 
     set appholdPID:setpoint to hold_app.    //Sets setpoint for PID
 }
 
@@ -93,7 +90,7 @@ function thrust_apo_limit {
 function deploy_fairing {
     if ship:altitude > 70000 {
         set ag10 to true.
-        wait 0.1.
+        wait 0.01.
         set ag10 to false.
     }
 }
