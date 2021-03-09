@@ -1,31 +1,41 @@
+clearScreen.
 print "Running asent.ks".
 
 thrust_limit_init.
-until ship:altitude >= 7000 {
+until (ship:altitude >= 7000) {
     thrust_limit.
     steering_control.
     stage_ssb.
     stage_lf.
 }
 
-until ship:apoapsis >=80000 {
-    lock throttle to 1.
+print "Speed no longer restricted.".
+
+lock throttle to 1.
+until (apoapsis >= 73000) {
     steering_control.
     stage_ssb.
     stage_lf.
 }
 
-thrust_limit_init.
-until ship:altitude >=79000 {
-    lock steering to heading(90, 0, 0).
-    thrust_limit.
+print "Apoapsis at 73km. Turning.".
+print "Starting apoapsis limit".
+
+lock steering to heading(90, 0, 0).
+
+thrust_apo_limit_init.
+until ship:altitude >=65000 {
+    thrust_apo_limit.
+    stage_lf.
 }
+
+wait until ship:altitude > 70001.
+
+deploy_fairing.
 
 lock throttle to 0.
 
-wait until ship:altitude > 70000.
-
-//runPath("orbit.ks").
+runPath("orbit.ks").
 
 //For controling and limiting the throttle
 // Uses a PID for limiting, until a alt of 7000m
@@ -33,7 +43,7 @@ function thrust_limit_init {
     set mythrot to 0.5.             //Temp value
     lock throttle to mythrot.       //Locks throttle to the variable 
     set holdPID to pidLoop(         //Creats a PID
-        0.15, 0.001, 0.001, 0, 1).  //PID values
+        0.5, 0.007, 0.007, 0, 1).  //PID values
     set hold_speed to 100.          //Temp speed restriction 
 }
 
@@ -46,8 +56,8 @@ function thrust_limit {
     }
     set holdPID:setpoint to hold_speed.     //Sets setpoint for PID
 
-    set mythrot to holdPID:update(time:seconds, ship:airspeed). //Sets throttle to PID output 
-                                                                //(uses aitspeed and time )  
+    set mythrot to holdPID:update(time:seconds, ship:airspeed). //Sets throttle to PID output (uses aitspeed and time ) 
+                                                                 
 } 
 
 function steering_control {
@@ -57,26 +67,33 @@ function steering_control {
 }
 
 function stage_ssb {
-    on (stage:solidfuel < 0.01) {
+    if ((stage:solidfuel < 0.3) and stage:solidfuel > 0.001 ) {
         Stage.
     }
 }
 function stage_lf {
-    when ship:maxThrust < 1 then {
+    if (ship:maxThrust < 1) {
         Stage.
     }
 }
 
-function thrust_app_limit_init {
-    set mythrot to 0.1.             //Temp value
-    lock throttle to mythrot.       //Locks throttle to the variable 
-    set appholdPID to pidLoop(      //Creats a PID
-        0.15, 0.001, 0.001, 0, 1).  //PID values
-    set hold_app to 80000.          //Temp appoapsis hight. 
+function thrust_apo_limit_init {
+    set mythrot to 0.1.                 //Temp value
+    lock throttle to mythrot.           //Locks throttle to the variable 
+    set appholdPID to pidLoop(          //Creats a PID
+        0.015, 0.0005, 0.0001, 0, 1).   //PID values
+    set hold_app to 80000.              //Appoapsis hight. 
+    set appholdPID:setpoint to hold_app.    //Sets setpoint for PID
 }
 
-function thrust_app_limit {     
-    set appholdPID:setpoint to hold_app.                           //Sets setpoint for PID
-    set mythrot to appholdPID:update(time:seconds, ship:altitude). //Sets throttle to PID output 
-                                                                   //(uses aitspeed and time )  
+function thrust_apo_limit {                            
+    set mythrot to appholdPID:update(time:seconds, ship:apoapsis). //Sets throttle to PID output (uses aitspeed and time )                                                                 
 } 
+
+function deploy_fairing {
+    if ship:altitude > 70000 {
+        set ag10 to true.
+        wait 0.1.
+        set ag10 to false.
+    }
+}

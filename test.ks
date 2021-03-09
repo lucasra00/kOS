@@ -1,9 +1,9 @@
 clearScreen.
 
-print "kører".
-
-until false {
-    print (maxThrust).
+when false then {
+    print "hej".
 }
+
+print "farvel".
 
 wait 5.
