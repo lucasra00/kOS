@@ -1,7 +1,6 @@
 clearScreen.
 
 print "Starting orbit.ks".
-print "Rising orbit to 100km".
 
 lock steering to heading(90, 0, 0).
 
@@ -10,7 +9,9 @@ if stage:liquidfuel < 5 {
     stage.
 }
 
-intoOrbitBurn.
+//intoOrbitBurn.
+node_apo.
+
 wait 5.
 
 //Funktions
@@ -40,21 +41,37 @@ function intoOrbitBurn {
 }
 
 function node_apo {
+set g_apo to (constant:g*kerbin:mass/(kerbin:radius+100000)^2).                         //Used to calculate v_final at final orbit.
+set v_apo to (sqrt(ship:velocity:orbit:mag^2+2*constant:g0*(apoapsis-ship:altitude))).  //Estimates speed at apoapsis.
+set v_final to (sqrt(g_apo*(kerbin:radius+100000))).                                    //Calculation of speed at orbit.
+lock deltaV to v_final-v_apo.
+set orbitburn to node(time:seconds+eta:apoapsis, 0, 0, deltaV).                  //Creats node. Porgrade: v_final-v_apo.
+add orbitburn.                                                                          //Adds node to flightplan.                                                  
+set bt to (orbitburn:deltav:mag*ship:mass)/(ship:maxthrust).                            //Estimates burntime.
+lock steering to orbitburn.                                                             //Locks steering to node.
+print "V final: " + v_final at (14,1).
+      
+    until eta:apoapsis <= bt/2+5 {
+        lock v_apo to (sqrt(ship:velocity:orbit:mag^2+2*constant:g0*(apoapsis-ship:altitude))).  //Recalculates estimate of speed at apoapsis.
+        set orbitburn to node(time:seconds+eta:apoapsis, 0, 0, deltaV).          //Recalcutale delta v of node.
+        set bt to (orbitburn:deltav:mag*ship:mass)/(ship:maxthrust).                    //Recalculates estimate of burntime.
+        print "V @ apo: " + v_apo at(14, 2).                                            //Prints v_apo.
+        print "Delta V: " + (v_final-v_apo) at(14,3).                                             //Prints estimated deltaV.
+    } 
 
-set bt to orbitburn:deltav:mag/ship:mass.
 
-    until eta:apoapsis <= 5+bt/2 {
-        set dV to (vAtHeight-(sqrt(ship:velocity:orbit:mag^2+2*constant:g0*(apoapsis-ship:altitude)))).
-        set orbitburn to node(time:seconds+eta:apoapsis, 0, 0, dV).
-        lock steering to orbitburn.
-        set a to (maxThrust/ship:mass). 
-        set bt to orbitburn:deltav:mag/ship:mass.
+    wait until (vang(orbitburn, ship:facing) <0.25 and eta:apoapsis <= bt/2).
+
+    until periapsis > 90000. {
+    lock throttle to 1.
     }
 
-    wait until vang(orbitburn,ship:facing) <0.25. and 
-    
+    lock throttle to 0.3.
 
+    wait until orbitburn:deltav:mag < 0.5.
+    lock throttle to 0.
 
+    print "Note complete".
 }
 
 
