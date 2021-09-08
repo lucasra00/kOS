@@ -21,8 +21,10 @@ until (apoapsis >= 75000) {
 print "Apoapsis at 73km. Turning.".
 print "Starting apoapsis limit @ 100km".
 
+lock steering to heading(90,0,0).
+
 thrust_apo_limit_init.
-until (ship:altitude >=70000) and (apoapsis>=99995) {
+until (ship:altitude >=75000) and (apoapsis>=99995) {
     thrust_apo_limit.
     stage_lf.
     deploy_fairing.

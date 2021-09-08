@@ -9,66 +9,59 @@ if stage:liquidfuel < 5 {
     stage.
 }
 
-//intoOrbitBurn.
 node_apo.
 
 wait 5.
 
 //Funktions
 
-function intoOrbitBurn {
-    set disHeight to 100000.                                        //Disired altitude.
-    set vAtHeight to (sqrt(constant:g0*(kerbin:radius+disHeight))). //Calculate the speed at disired altitude.
-    set dV to (vAtHeight-(sqrt(ship:velocity:orbit:mag^2+2*constant:g0*(apoapsis-ship:altitude)))).   //Calculate the deltaV needed to orbit. The last bit is just physiscs;-)
-    set a to (maxThrust/ship:mass).                                 //Estemate on the acceleration (start a)
-    set t_start to (dV/(2*a))-1.                                    //Calculate the start time for the burn.
-
-    wait until (eta:apoapsis <= t_start).
-    lock throttle to 1.
-
-    wait until (ship:periapsis >= (disHeight-1000)).
-        lock throttle to 0.1.
-    
-
-    wait until (ship:periapsis >= disHeight).
-        lock throttle to 0.
-    
-
-    print "Into orbit burn complete.".
-    print "Finale altitudes:".
-    print "Apoapsis:  " + ship:apoapsis.
-    print "Periapsis: " + ship:periapsis.
-}
+function v_at_apo {
+    declare temp to (ship:velocity:orbit:mag^2+2*constant:g*kerbin:mass*((1/(alt:apoapsis+kerbin:radius))-(1/(ship:altitude+kerbin:radius)))). //Calculates size of root.
+    if (temp >= 0) {                                                                                           //No complex numbers.
+        declare global v_apo to sqrt(temp).  
+        print "Speed at Apoapsis:" + v_apo.                                                                     //Calculate speed at apo.
+    } else {
+        print "NAN. Speed at apo <0m/s.".                                                                      //Return NAN if speed<0.
+    }                                                                                                          //^^Should not happen, due to physics.
+}   
 
 function node_apo {
-set g_apo to (constant:g*kerbin:mass/(kerbin:radius+100000)^2).                         //Used to calculate v_final at final orbit.
-set v_apo to (sqrt(ship:velocity:orbit:mag^2+2*constant:g0*(apoapsis-ship:altitude))).  //Estimates speed at apoapsis.
-set v_final to (sqrt(g_apo*(kerbin:radius+100000))).                                    //Calculation of speed at orbit.
-lock deltaV to v_final-v_apo.
-set orbitburn to node(time:seconds+eta:apoapsis, 0, 0, deltaV).                  //Creats node. Porgrade: v_final-v_apo.
-add orbitburn.                                                                          //Adds node to flightplan.                                                  
-set bt to (orbitburn:deltav:mag*ship:mass)/(ship:maxthrust).                            //Estimates burntime.
-lock steering to orbitburn.                                                             //Locks steering to node.
-print "V final: " + v_final at (14,1).
-      
-    until eta:apoapsis <= bt/2+5 {
-        lock v_apo to (sqrt(ship:velocity:orbit:mag^2+2*constant:g0*(apoapsis-ship:altitude))).  //Recalculates estimate of speed at apoapsis.
-        set orbitburn to node(time:seconds+eta:apoapsis, 0, 0, deltaV).          //Recalcutale delta v of node.
-        set bt to (orbitburn:deltav:mag*ship:mass)/(ship:maxthrust).                    //Recalculates estimate of burntime.
-        print "V @ apo: " + v_apo at(14, 2).                                            //Prints v_apo.
-        print "Delta V: " + (v_final-v_apo) at(14,3).                                             //Prints estimated deltaV.
-    } 
+    set v_final to (sqrt(constant:g*kerbin:mass/(kerbin:radius+ship:apoapsis))).            //Calculation of speed at orbit.
+    v_at_apo.                                                                               //
+    set deltaV to v_final-v_apo.                                                            //Initial guess for delta v      
+    set orbitburn to node( TimeSpan(eta:apoapsis), 0, 0, deltaV).                           //Creats node. Porgrade: v_final-v_apo.
+    add orbitburn.                                                                          //Adds node to flightplan.                                                  
+    set bt to (orbitburn:deltav:mag*ship:mass)/(ship:maxthrust).                            //Estimates burntime.
+    lock steering to orbitburn.                                                             //Locks steering to node.
 
+        until orbitburn:orbit:periapsis>99990 {
+            remove orbitburn.
+            set deltaV to deltaV+1.
+            set orbitburn to node(time:seconds+eta:apoapsis, 0, 0, deltaV).
+        }
+        
+        Print "Done optmising orbit burn".
 
-    wait until (vang(orbitburn, ship:facing) <0.25 and eta:apoapsis <= bt/2).
+        set bt to (orbitburn:deltav:mag*ship:mass)/(ship:maxthrust).    
+        print "Burn time= " + bt. 
 
-    until periapsis > 90000. {
-    lock throttle to 1.
-    }
+        wait until eta:apoapsis <= bt/2+5.
+        print "Getting ready to exicute burn!".
 
-    lock throttle to 0.3.
+        wait until ((vang(orbitburn:deltav, ship:facing:vector)<1) and (eta:apoapsis <= bt/2)).
+        print "Exicuting burn!".
 
-    wait until orbitburn:deltav:mag < 0.5.
+        until (alt:periapsis > 93000) {
+        lock throttle to 1.
+        }
+
+        until (alt:periapsis > 97000) {
+        lock throttle to 0.3.
+        }
+
+        lock throttle to 0.1.
+
+    wait until orbitburn:deltav:mag <= 0.1.
     lock throttle to 0.
 
     print "Note complete".
