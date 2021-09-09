@@ -1,3 +1,5 @@
+//This script counts down from 5, launches the rocket (using one stage) and waits a little before running different script.
+
 clearScreen.
 print "Starting countdown:".
 from {local countdown is 5.} until countdown = 0 step {set countdown to countdown - 1.} do {
